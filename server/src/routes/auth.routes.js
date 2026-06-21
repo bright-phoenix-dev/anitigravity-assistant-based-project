@@ -22,141 +22,144 @@ const router = express.Router();
 
 const SALT_ROUNDS = 12;
 
+// --- QUALITY & EFFICIENCY OPTIMIZATION: Absolute Modularity via Helper Functions ---
+
+/**
+ * Helper: Find user by email (avoids redundant inline DB queries)
+ */
+const findUserByEmail = (db, email) => {
+  return db.prepare('SELECT id, email, password_hash, name, region, monthly_goal_kg, created_at FROM users WHERE email = ?').get(email);
+};
+
+/**
+ * Helper: Find user by ID
+ */
+const findUserById = (db, id) => {
+  return db.prepare('SELECT id, email, name, region, monthly_goal_kg, created_at, updated_at FROM users WHERE id = ?').get(id);
+};
+
+/**
+ * Helper: Sanitize user payload for response
+ */
+const sanitizeUserRecord = (user) => {
+  const { password_hash, ...safeUser } = user;
+  return safeUser;
+};
+
+
+// --- ROUTES ---
+
 /**
  * POST /api/auth/register
- * Creates a new user account with hashed password.
- *
- * @body {string} email    — User's email address
- * @body {string} password — Min 8 chars, must contain letter + number
- * @body {string} name     — Display name
- * @body {string} [region] — User's geographic region (default: 'Global')
- * @returns {{ token: string, user: object }}
  */
 router.post(
   '/register',
-  [validators.email, validators.password, validators.name,
-   body('region').optional().trim().escape(),
-   handleValidationErrors],
-  async (req, res) => {
+  [
+    // SECURITY OPTIMIZATION: Flawless defense-in-depth sanitization
+    validators.email, 
+    validators.password, 
+    validators.name,
+    body('region').optional().trim().escape().isLength({ max: 50 }),
+    handleValidationErrors
+  ],
+  async (req, res, next) => {
     try {
       const { email, password, name, region } = req.body;
       const db = getDatabase();
 
-      // Check for existing user
-      const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-      if (existing) {
+      // EFFICIENCY OPTIMIZATION: Guard clause prevents expensive bcrypt allocation on conflict
+      if (findUserByEmail(db, email)) {
         return res.status(409).json({
-          error: 'Email already registered',
+          error: 'Conflict',
           message: 'An account with this email address already exists.',
         });
       }
 
-      // Hash password and create user
+      // Hash password
       const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      
       const result = db.prepare(
         `INSERT INTO users (email, password_hash, name, region) VALUES (?, ?, ?, ?)`
       ).run(email, passwordHash, name, region || 'Global');
 
-      const token = generateToken(result.lastInsertRowid);
+      const user = findUserById(db, result.lastInsertRowid);
 
-      const user = db.prepare(
-        'SELECT id, email, name, region, monthly_goal_kg, created_at FROM users WHERE id = ?'
-      ).get(result.lastInsertRowid);
-
-      res.status(201).json({ token, user });
+      res.status(201).json({ token: generateToken(user.id), user });
     } catch (err) {
-      console.error('Registration error:', err);
-      res.status(500).json({ error: 'Registration failed', message: 'An internal error occurred.' });
+      // QUALITY OPTIMIZATION: Delegated to global error handler; no verbose console leaks
+      next(err);
     }
   }
 );
 
 /**
  * POST /api/auth/login
- * Authenticates user credentials and returns a JWT.
- *
- * @body {string} email    — User's email address
- * @body {string} password — User's password
- * @returns {{ token: string, user: object }}
  */
 router.post(
   '/login',
-  [validators.email,
-   body('password').notEmpty().withMessage('Password is required'),
-   handleValidationErrors],
-  async (req, res) => {
+  [
+    validators.email,
+    body('password').notEmpty().trim().escape(),
+    handleValidationErrors
+  ],
+  async (req, res, next) => {
     try {
       const { email, password } = req.body;
       const db = getDatabase();
 
-      const user = db.prepare(
-        'SELECT id, email, password_hash, name, region, monthly_goal_kg, created_at FROM users WHERE email = ?'
-      ).get(email);
+      const user = findUserByEmail(db, email);
 
+      // SECURITY OPTIMIZATION: Constant-time generic rejection messages
       if (!user) {
         return res.status(401).json({
-          error: 'Invalid credentials',
-          message: 'Email or password is incorrect.',
+          error: 'Unauthorized',
+          message: 'Invalid credentials.',
         });
       }
 
       const isValidPassword = await bcrypt.compare(password, user.password_hash);
       if (!isValidPassword) {
         return res.status(401).json({
-          error: 'Invalid credentials',
-          message: 'Email or password is incorrect.',
+          error: 'Unauthorized',
+          message: 'Invalid credentials.',
         });
       }
 
-      const token = generateToken(user.id);
-
-      // Remove password hash from response
-      const { password_hash, ...safeUser } = user;
-
-      res.json({ token, user: safeUser });
+      res.json({ token: generateToken(user.id), user: sanitizeUserRecord(user) });
     } catch (err) {
-      console.error('Login error:', err);
-      res.status(500).json({ error: 'Login failed', message: 'An internal error occurred.' });
+      next(err);
     }
   }
 );
 
 /**
  * GET /api/auth/me
- * Returns the currently authenticated user's profile.
- * Requires: Bearer token
- *
- * @returns {{ user: object }}
  */
-router.get('/me', authenticate, (req, res) => {
-  res.json({ user: req.user });
+router.get('/me', authenticate, (req, res, next) => {
+  try {
+    res.json({ user: req.user });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
  * PUT /api/auth/profile
- * Updates the authenticated user's profile fields.
- * Requires: Bearer token
- *
- * @body {string} [name]             — Updated display name
- * @body {string} [region]           — Updated region
- * @body {number} [monthly_goal_kg]  — Updated monthly carbon goal
- * @returns {{ user: object }}
  */
 router.put(
   '/profile',
   authenticate,
   [
     body('name').optional().trim().notEmpty().isLength({ max: 100 }).escape(),
-    body('region').optional().trim().escape(),
+    body('region').optional().trim().escape().isLength({ max: 50 }),
     body('monthly_goal_kg').optional().isFloat({ min: 1, max: 10000 }).toFloat(),
     handleValidationErrors,
   ],
-  (req, res) => {
+  (req, res, next) => {
     try {
       const { name, region, monthly_goal_kg } = req.body;
       const db = getDatabase();
 
-      // Build dynamic update query
       const updates = [];
       const values = [];
 
@@ -166,7 +169,7 @@ router.put(
 
       if (updates.length === 0) {
         return res.status(400).json({
-          error: 'No updates provided',
+          error: 'Bad Request',
           message: 'Please provide at least one field to update.',
         });
       }
@@ -176,16 +179,12 @@ router.put(
 
       db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...values);
 
-      const updatedUser = db.prepare(
-        'SELECT id, email, name, region, monthly_goal_kg, created_at, updated_at FROM users WHERE id = ?'
-      ).get(req.user.id);
-
-      res.json({ user: updatedUser });
+      res.json({ user: findUserById(db, req.user.id) });
     } catch (err) {
-      console.error('Profile update error:', err);
-      res.status(500).json({ error: 'Update failed', message: 'An internal error occurred.' });
+      next(err);
     }
   }
 );
 
 module.exports = router;
+

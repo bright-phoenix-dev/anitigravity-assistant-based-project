@@ -24,7 +24,14 @@ const chatRoutes = require('./routes/chat.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const CLIENT_URL = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000';
+
+// SECURITY OPTIMIZATION: Ensure strict CORS configurations are set up and verify no fallback keys are exposed in production.
+const CLIENT_URL = process.env.FRONTEND_URL || process.env.CLIENT_URL;
+if (process.env.NODE_ENV === 'production' && !CLIENT_URL) {
+  console.error('CRITICAL: No CLIENT_URL provided in production environment.');
+  process.exit(1); 
+}
+const corsOrigin = (process.env.NODE_ENV === 'production') ? CLIENT_URL : (CLIENT_URL || 'http://localhost:3000');
 
 // ─── Security Middleware ──────────────────────────────────────────
 app.use(helmet({
@@ -34,7 +41,7 @@ app.use(helmet({
 
 // ─── CORS Configuration ──────────────────────────────────────────
 app.use(cors({
-  origin: CLIENT_URL,
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -100,8 +107,13 @@ async function startServer() {
 
   // ─── Global Error Handler ─────────────────────────────────────
   app.use((err, req, res, next) => {
-    console.error('Unhandled error:', err);
-    res.status(500).json({
+    // QUALITY OPTIMIZATION: Cleaned up leftover console.log/console.error unless in development mode.
+    // SECURITY OPTIMIZATION: Improved error catch block to prevent leaking stack traces or crashing the server.
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Unhandled error:', err);
+    }
+    
+    res.status(err.status || 500).json({
       error: 'Internal server error',
       message: process.env.NODE_ENV === 'development'
         ? err.message
@@ -113,7 +125,7 @@ async function startServer() {
   if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
       console.log(`\n🌍 CarbonWise API running at http://localhost:${PORT}`);
-      console.log(`📡 Accepting requests from ${CLIENT_URL}`);
+      console.log(`📡 Accepting requests from ${corsOrigin}`);
       console.log(`🔑 Auth: POST /api/auth/register, POST /api/auth/login`);
       console.log(`📋 Activities: /api/activities`);
       console.log(`🔄 Habits: /api/habits`);

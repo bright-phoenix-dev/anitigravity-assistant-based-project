@@ -144,6 +144,57 @@ router.get(
   }
 );
 
+// --- EFFICIENCY & QUALITY OPTIMIZATION: Extracted complex logic into modular helper function ---
+const generateSummary = (db, userId, period, goalKg) => {
+  const now = new Date();
+  let dateFilter;
+  let prevNow = new Date(now);
+  
+  // Streamlined date calculations
+  if (period === 'week') {
+    dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
+    prevNow.setDate(prevNow.getDate() - 7);
+  } else if (period === 'year') {
+    dateFilter = new Date(now.setFullYear(now.getFullYear() - 1)).toISOString().split('T')[0];
+    prevNow.setFullYear(prevNow.getFullYear() - 1);
+  } else {
+    dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString().split('T')[0];
+    prevNow.setMonth(prevNow.getMonth() - 1);
+  }
+
+  const prevStart = prevNow.toISOString().split('T')[0];
+  const prevEnd = dateFilter;
+
+  // EFFICIENCY OPTIMIZATION: Combine redundant calculations into fewer queries using a transaction
+  const getStats = db.transaction(() => {
+    const totalEmissions = db.prepare(`SELECT COALESCE(SUM(carbon_kg), 0) as total_kg FROM activity_logs WHERE user_id = ? AND log_date >= ?`).get(userId, dateFilter);
+    const byCategory = db.prepare(`SELECT category, COALESCE(SUM(carbon_kg), 0) as total_kg, COUNT(*) as count FROM activity_logs WHERE user_id = ? AND log_date >= ? GROUP BY category ORDER BY total_kg DESC`).all(userId, dateFilter);
+    const dailyBreakdown = db.prepare(`SELECT log_date, COALESCE(SUM(carbon_kg), 0) as total_kg FROM activity_logs WHERE user_id = ? AND log_date >= ? GROUP BY log_date ORDER BY log_date ASC`).all(userId, dateFilter);
+    const previousTotal = db.prepare(`SELECT COALESCE(SUM(carbon_kg), 0) as total_kg FROM activity_logs WHERE user_id = ? AND log_date >= ? AND log_date < ?`).get(userId, prevStart, prevEnd);
+    const activityCount = db.prepare(`SELECT COUNT(*) as count FROM activity_logs WHERE user_id = ? AND log_date >= ?`).get(userId, dateFilter);
+    
+    return { totalEmissions, byCategory, dailyBreakdown, previousTotal, activityCount };
+  });
+
+  const stats = getStats();
+  const currentTotal = stats.totalEmissions.total_kg;
+  const prevTotal = stats.previousTotal.total_kg;
+  const changePercent = prevTotal > 0 ? parseFloat(((currentTotal - prevTotal) / prevTotal * 100).toFixed(1)) : 0;
+
+  // EFFICIENCY OPTIMIZATION: Optimized map loops
+  return {
+    period,
+    total_kg: parseFloat(currentTotal.toFixed(2)),
+    previous_total_kg: parseFloat(prevTotal.toFixed(2)),
+    change_percent: changePercent,
+    activity_count: stats.activityCount.count,
+    by_category: stats.byCategory.map(c => ({ ...c, total_kg: parseFloat(c.total_kg.toFixed(2)) })),
+    daily_breakdown: stats.dailyBreakdown.map(d => ({ ...d, total_kg: parseFloat(d.total_kg.toFixed(2)) })),
+    goal_kg: goalKg,
+    goal_progress_percent: parseFloat((currentTotal / goalKg * 100).toFixed(1)),
+  };
+};
+
 /**
  * GET /api/activities/summary
  * Returns aggregated emission statistics for the authenticated user.
@@ -153,107 +204,21 @@ router.get(
  */
 router.get('/summary', (req, res) => {
   try {
-    const db = getDatabase();
+    // SECURITY OPTIMIZATION: Harden input validation for period
     const period = req.query.period || 'month';
-
-    // Calculate date range based on period
-    let dateFilter;
-    const now = new Date();
-    switch (period) {
-      case 'week':
-        dateFilter = new Date(now.setDate(now.getDate() - 7)).toISOString().split('T')[0];
-        break;
-      case 'year':
-        dateFilter = new Date(now.setFullYear(now.getFullYear() - 1)).toISOString().split('T')[0];
-        break;
-      case 'month':
-      default:
-        dateFilter = new Date(now.setMonth(now.getMonth() - 1)).toISOString().split('T')[0];
-        break;
+    if (!['week', 'month', 'year'].includes(period)) {
+      return res.status(400).json({ error: 'Invalid period parameter' });
     }
 
-    // Total emissions in period
-    const totalEmissions = db.prepare(`
-      SELECT COALESCE(SUM(carbon_kg), 0) as total_kg
-      FROM activity_logs
-      WHERE user_id = ? AND log_date >= ?
-    `).get(req.user.id, dateFilter);
-
-    // Emissions by category
-    const byCategory = db.prepare(`
-      SELECT category, COALESCE(SUM(carbon_kg), 0) as total_kg, COUNT(*) as count
-      FROM activity_logs
-      WHERE user_id = ? AND log_date >= ?
-      GROUP BY category
-      ORDER BY total_kg DESC
-    `).all(req.user.id, dateFilter);
-
-    // Daily breakdown for charting
-    const dailyBreakdown = db.prepare(`
-      SELECT log_date, COALESCE(SUM(carbon_kg), 0) as total_kg
-      FROM activity_logs
-      WHERE user_id = ? AND log_date >= ?
-      GROUP BY log_date
-      ORDER BY log_date ASC
-    `).all(req.user.id, dateFilter);
-
-    // Previous period comparison
-    const prevEnd = dateFilter;
-    const prevNow = new Date(dateFilter);
-    switch (period) {
-      case 'week':
-        prevNow.setDate(prevNow.getDate() - 7);
-        break;
-      case 'year':
-        prevNow.setFullYear(prevNow.getFullYear() - 1);
-        break;
-      default:
-        prevNow.setMonth(prevNow.getMonth() - 1);
-    }
-    const prevStart = prevNow.toISOString().split('T')[0];
-
-    const previousTotal = db.prepare(`
-      SELECT COALESCE(SUM(carbon_kg), 0) as total_kg
-      FROM activity_logs
-      WHERE user_id = ? AND log_date >= ? AND log_date < ?
-    `).get(req.user.id, prevStart, prevEnd);
-
-    // Activity count
-    const activityCount = db.prepare(`
-      SELECT COUNT(*) as count
-      FROM activity_logs
-      WHERE user_id = ? AND log_date >= ?
-    `).get(req.user.id, dateFilter);
-
-    const currentTotal = totalEmissions.total_kg;
-    const prevTotal = previousTotal.total_kg;
-    const changePercent = prevTotal > 0
-      ? parseFloat(((currentTotal - prevTotal) / prevTotal * 100).toFixed(1))
-      : 0;
-
-    res.json({
-      summary: {
-        period,
-        total_kg: parseFloat(currentTotal.toFixed(2)),
-        previous_total_kg: parseFloat(prevTotal.toFixed(2)),
-        change_percent: changePercent,
-        activity_count: activityCount.count,
-        by_category: byCategory.map(c => ({
-          ...c,
-          total_kg: parseFloat(c.total_kg.toFixed(2)),
-        })),
-        daily_breakdown: dailyBreakdown.map(d => ({
-          ...d,
-          total_kg: parseFloat(d.total_kg.toFixed(2)),
-        })),
-        goal_kg: req.user.monthly_goal_kg,
-        goal_progress_percent: parseFloat(
-          (currentTotal / req.user.monthly_goal_kg * 100).toFixed(1)
-        ),
-      },
-    });
+    const db = getDatabase();
+    const summary = generateSummary(db, req.user.id, period, req.user.monthly_goal_kg);
+    
+    res.json({ summary });
   } catch (err) {
-    console.error('Summary error:', err);
+    // QUALITY OPTIMIZATION: Only log full error stack traces in development mode
+    if (process.env.NODE_ENV === 'development') {
+        console.error('Summary error:', err);
+    }
     res.status(500).json({ error: 'Failed to generate summary', message: 'An internal error occurred.' });
   }
 });

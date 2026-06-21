@@ -5,8 +5,10 @@
  * Automatically attaches JWT tokens and handles error responses.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE) {
+  throw new Error('CRITICAL: NEXT_PUBLIC_API_URL environment variable is strictly required.');
+}
 /**
  * Makes an authenticated API request.
  *
