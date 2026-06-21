@@ -1,10 +1,4 @@
 'use client';
-
-/**
- * CarbonWise — Emissions Line Chart
- * Displays daily emissions over time using Recharts.
- */
-
 import {
   ResponsiveContainer,
   LineChart,
@@ -16,7 +10,6 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
@@ -34,7 +27,6 @@ const CustomTooltip = ({ active, payload, label }) => {
     </div>
   );
 };
-
 export default function EmissionsLineChart({ data = [] }) {
   if (data.length === 0) {
     return (
@@ -50,13 +42,10 @@ export default function EmissionsLineChart({ data = [] }) {
       </div>
     );
   }
-
-  // Format dates for display
   const formatted = data.map(d => ({
     ...d,
     date: d.log_date?.slice(5) || d.log_date, // Show MM-DD
   }));
-
   return (
     <ResponsiveContainer width="100%" height="100%">
       <AreaChart data={formatted} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
@@ -95,3 +84,4 @@ export default function EmissionsLineChart({ data = [] }) {
     </ResponsiveContainer>
   );
 }
+EmissionsLineChart.displayName = "EmissionsLineChart";

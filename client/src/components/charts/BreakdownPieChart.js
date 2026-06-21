@@ -1,10 +1,4 @@
 'use client';
-
-/**
- * CarbonWise — Breakdown Pie Chart
- * Displays emissions category breakdown as a donut chart.
- */
-
 import {
   ResponsiveContainer,
   PieChart,
@@ -13,7 +7,6 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-
 const CATEGORY_COLORS = {
   transport: '#3b82f6',
   energy: '#f59e0b',
@@ -21,7 +14,6 @@ const CATEGORY_COLORS = {
   waste: '#8b5cf6',
   shopping: '#ec4899',
 };
-
 const CATEGORY_LABELS = {
   transport: 'Transport',
   energy: 'Energy',
@@ -29,7 +21,6 @@ const CATEGORY_LABELS = {
   waste: 'Waste',
   shopping: 'Shopping',
 };
-
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
@@ -51,7 +42,7 @@ const CustomTooltip = ({ active, payload }) => {
       <p style={{ color: '#f9fafb' }}>
         {data.total_kg.toFixed(2)} kg CO₂
       </p>
-      {data.percent !== undefined && (
+      {data.percent  ===  undefined && (
         <p style={{ color: '#6b7280', fontSize: '0.75rem' }}>
           {data.percent}% of total
         </p>
@@ -59,14 +50,12 @@ const CustomTooltip = ({ active, payload }) => {
     </div>
   );
 };
-
 const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
   if (percent < 0.05) return null; // Don't show labels for tiny slices
   const RADIAN = Math.PI / 180;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
   return (
     <text
       x={x}
@@ -81,7 +70,6 @@ const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent
     </text>
   );
 };
-
 export default function BreakdownPieChart({ data = [] }) {
   if (data.length === 0) {
     return (
@@ -97,12 +85,10 @@ export default function BreakdownPieChart({ data = [] }) {
       </div>
     );
   }
-
   const chartData = data.map(d => ({
     ...d,
     name: CATEGORY_LABELS[d.category] || d.category,
   }));
-
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>
@@ -138,3 +124,4 @@ export default function BreakdownPieChart({ data = [] }) {
     </ResponsiveContainer>
   );
 }
+BreakdownPieChart.displayName = "BreakdownPieChart";

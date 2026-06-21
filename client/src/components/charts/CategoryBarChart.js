@@ -1,10 +1,4 @@
 'use client';
-
-/**
- * CarbonWise — Category Bar Chart
- * Displays emissions by category as a horizontal bar chart.
- */
-
 import {
   ResponsiveContainer,
   BarChart,
@@ -15,7 +9,6 @@ import {
   Tooltip,
   Cell,
 } from 'recharts';
-
 const CATEGORY_COLORS = {
   transport: '#3b82f6',
   energy: '#f59e0b',
@@ -23,7 +16,6 @@ const CATEGORY_COLORS = {
   waste: '#8b5cf6',
   shopping: '#ec4899',
 };
-
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
@@ -52,7 +44,6 @@ const CustomTooltip = ({ active, payload }) => {
     </div>
   );
 };
-
 export default function CategoryBarChart({ data = [] }) {
   if (data.length === 0) {
     return (
@@ -68,7 +59,6 @@ export default function CategoryBarChart({ data = [] }) {
       </div>
     );
   }
-
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} layout="vertical">
@@ -101,3 +91,4 @@ export default function CategoryBarChart({ data = [] }) {
     </ResponsiveContainer>
   );
 }
+CategoryBarChart.displayName = "CategoryBarChart";

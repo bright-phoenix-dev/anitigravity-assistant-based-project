@@ -1,39 +1,28 @@
 'use client';
-
-/**
- * CarbonWise — Registration Page
- */
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-
 const REGIONS = [
   'Global', 'North America', 'Europe', 'United Kingdom',
   'India', 'Asia Pacific', 'South America', 'Africa', 'Middle East', 'Oceania',
 ];
-
 export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', region: 'Global' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { register } = useAuth();
   const router = useRouter();
-
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-
     if (form.password.length < 8) {
       setError('Password must be at least 8 characters.');
       return;
     }
-
     setLoading(true);
     try {
       await register(form);
@@ -44,7 +33,6 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="auth-page">
       <div className="auth-card animate-fade-in">
@@ -56,13 +44,11 @@ export default function RegisterPage() {
           <h2 className="auth-title">Create your account</h2>
           <p className="auth-subtitle">Start your journey to a smaller carbon footprint</p>
         </div>
-
         {error && (
           <div className="auth-error" role="alert">
             <span>⚠️</span> {error}
           </div>
         )}
-
         <form onSubmit={handleSubmit} className="auth-form" noValidate>
           <div className="form-group">
             <label htmlFor="register-name" className="form-label">Full Name</label>
@@ -79,7 +65,6 @@ export default function RegisterPage() {
               aria-required="true"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="register-email" className="form-label">Email Address</label>
             <input
@@ -95,7 +80,6 @@ export default function RegisterPage() {
               aria-required="true"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="register-password" className="form-label">Password</label>
             <input
@@ -112,7 +96,6 @@ export default function RegisterPage() {
               aria-required="true"
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="register-region" className="form-label">Region</label>
             <select
@@ -127,8 +110,7 @@ export default function RegisterPage() {
               ))}
             </select>
           </div>
-
-          <button
+          <button aria-label="Interactive button"
             id="register-submit"
             type="submit"
             className="btn-primary auth-submit"
@@ -141,13 +123,11 @@ export default function RegisterPage() {
             )}
           </button>
         </form>
-
         <p className="auth-footer-text">
           Already have an account?{' '}
-          <Link href="/login" className="auth-link">Sign in</Link>
+          <Link aria-label="Navigation link" href="/login" className="auth-link">Sign in</Link>
         </p>
       </div>
-
       <style jsx>{`
         .auth-page {
           min-height: 100vh;
@@ -157,7 +137,6 @@ export default function RegisterPage() {
           background: var(--color-bg-primary);
           padding: 2rem;
         }
-
         .auth-card {
           width: 100%;
           max-width: 420px;
@@ -166,12 +145,10 @@ export default function RegisterPage() {
           border-radius: var(--radius-xl);
           padding: 2.5rem;
         }
-
         .auth-header {
           text-align: center;
           margin-bottom: 2rem;
         }
-
         .auth-logo {
           display: inline-flex;
           align-items: center;
@@ -179,12 +156,10 @@ export default function RegisterPage() {
           text-decoration: none;
           margin-bottom: 1.5rem;
         }
-
         .auth-logo-icon { font-size: 1.75rem; }
         .auth-logo-text { font-size: 1.5rem; font-weight: 800; }
         .auth-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.375rem; }
         .auth-subtitle { color: var(--color-text-secondary); font-size: 0.9rem; }
-
         .auth-error {
           padding: 0.75rem 1rem;
           background: rgba(239, 68, 68, 0.1);
@@ -197,45 +172,39 @@ export default function RegisterPage() {
           align-items: center;
           gap: 0.5rem;
         }
-
         .auth-form {
           display: flex;
           flex-direction: column;
           gap: 1.25rem;
         }
-
         .form-group {
           display: flex;
           flex-direction: column;
         }
-
         .auth-submit {
           width: 100%;
           padding: 0.875rem;
           font-size: 1rem;
           margin-top: 0.5rem;
         }
-
         .auth-spinner {
           animation: spin-slow 1s linear infinite;
           display: inline-block;
         }
-
         .auth-footer-text {
           text-align: center;
           margin-top: 1.5rem;
           font-size: 0.85rem;
           color: var(--color-text-secondary);
         }
-
         .auth-link {
           color: var(--color-primary-light);
           text-decoration: none;
           font-weight: 600;
         }
-
         .auth-link:hover { text-decoration: underline; }
       `}</style>
     </div>
   );
 }
+RegisterPage.displayName = "RegisterPage";

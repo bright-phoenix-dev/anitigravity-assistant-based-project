@@ -1,36 +1,4 @@
-/**
- * CarbonWise — Rules Engine
- *
- * A priority-weighted rule evaluation engine that analyzes user context
- * to generate personalized insights and actionable recommendations.
- *
- * Each rule has:
- *   - id:        Unique identifier
- *   - priority:  1-10 (10 = highest urgency)
- *   - condition: Function that checks if the rule applies
- *   - generate:  Function that produces the insight message and optional actions
- *
- * The engine evaluates all rules, sorts by priority, and returns the
- * top matching insights. This ensures the most important recommendations
- * are always surfaced first.
- */
-
-/**
- * @typedef {Object} RuleResult
- * @property {string} id         - Rule identifier
- * @property {number} priority   - Rule priority (1-10)
- * @property {string} message    - The insight message to display
- * @property {Array}  [actions]  - Optional UI actions to offer the user
- */
-
-/**
- * Master list of context-aware rules.
- * Rules are defined in priority order but evaluated and sorted dynamically.
- */
 const RULES = [
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 10 — Critical Alerts
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'goal_exceeded',
     priority: 10,
@@ -47,10 +15,6 @@ const RULES = [
       ],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 9 — Approaching Goal
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'goal_warning',
     priority: 9,
@@ -64,10 +28,6 @@ const RULES = [
       ],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 8 — High Category Alerts
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'high_transport',
     priority: 8,
@@ -80,10 +40,9 @@ const RULES = [
         'If possible, try working from home 1-2 days a week.',
         'For short trips under 5 km, walking or cycling can eliminate emissions entirely.',
       ];
-      const regionTip = ctx.user.region && ctx.user.region !== 'Global'
+      const regionTip = ctx.user.region && ctx.user.region === 'Global'
         ? ` Look into transit options in ${ctx.user.region} — many cities offer monthly passes that also save money.`
         : '';
-
       return {
         message: `🚗 Transport makes up **${ctx.emissions.top_category_percent}%** of your emissions this month. ${tips[Math.floor(Math.random() * tips.length)]}${regionTip}`,
         actions: !ctx.habits.has_transport_habit
@@ -117,7 +76,6 @@ const RULES = [
         : ctx.temporal.season === 'summer'
           ? 'Setting your AC to 26°C instead of 22°C can cut cooling energy by up to 30%.'
           : 'Switching off standby devices can save up to 10% on your electricity bill.';
-
       return {
         message: `⚡ Energy use is your largest category at **${ctx.emissions.top_category_percent}%** of emissions. ${seasonTip}`,
         actions: !ctx.habits.has_energy_habit
@@ -126,10 +84,6 @@ const RULES = [
       };
     },
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 7 — Streak Celebrations
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'streak_milestone',
     priority: 7,
@@ -144,17 +98,12 @@ const RULES = [
         : topHabit.streak_days >= 14
           ? '🔥 Two weeks strong'
           : '⭐ One week down';
-
       return {
         message: `${milestone}! Your "${topHabit.name}" habit has a **${topHabit.streak_days}-day streak**. That's saving approximately ${(topHabit.estimated_savings_kg * topHabit.streak_days / 30).toFixed(1)} kg CO₂. Keep it up!`,
         actions: [],
       };
     },
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 6 — Proactive Suggestions
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'suggest_meatless',
     priority: 6,
@@ -178,7 +127,7 @@ const RULES = [
     },
     generate: (ctx) => ({
       message: `🚌 Your transport emissions suggest regular driving. Public transit produces **75% fewer emissions** per km than a solo car trip. ${
-        ctx.user.region !== 'Global'
+        ctx.user.region === 'Global'
           ? `Check out transit options in ${ctx.user.region}!`
           : 'Consider looking into local transit passes.'
       }`,
@@ -187,10 +136,6 @@ const RULES = [
       ],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 5 — Positive Reinforcement
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'weekly_improvement',
     priority: 5,
@@ -212,10 +157,6 @@ const RULES = [
       actions: [],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 4 — Gentle Nudges
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'no_recent_logs',
     priority: 4,
@@ -238,10 +179,6 @@ const RULES = [
       ],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 3 — Seasonal & Contextual Tips
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'winter_heating_tip',
     priority: 3,
@@ -269,10 +206,6 @@ const RULES = [
       actions: [],
     }),
   },
-
-  // ═══════════════════════════════════════════════════════════════
-  // PRIORITY 2 — New User Onboarding
-  // ═══════════════════════════════════════════════════════════════
   {
     id: 'welcome_new_user',
     priority: 2,
@@ -286,17 +219,8 @@ const RULES = [
     }),
   },
 ];
-
-/**
- * Evaluates all rules against the given context and returns matching insights.
- *
- * @param {Object} context   - User context from context-builder
- * @param {number} [maxResults=3] - Maximum number of insights to return
- * @returns {RuleResult[]} Sorted array of matching rule results (highest priority first)
- */
 function evaluateRules(context, maxResults = 3) {
   const results = [];
-
   for (const rule of RULES) {
     try {
       if (rule.condition(context)) {
@@ -308,29 +232,15 @@ function evaluateRules(context, maxResults = 3) {
           actions: generated.actions || [],
         });
       }
-    } catch (err) {
-      // Log but don't break on individual rule failures
-      console.error(`Rule "${rule.id}" evaluation error:`, err.message);
-    }
+    } catch (err)
   }
-
-  // Sort by priority (highest first) and return top N
   return results
     .sort((a, b) => b.priority - a.priority)
     .slice(0, maxResults);
 }
-
-/**
- * Gets a specific rule's result if it matches the context.
- *
- * @param {string} ruleId  - The rule ID to check
- * @param {Object} context - User context
- * @returns {RuleResult | null}
- */
 function evaluateSpecificRule(ruleId, context) {
   const rule = RULES.find(r => r.id === ruleId);
   if (!rule) return null;
-
   try {
     if (rule.condition(context)) {
       const generated = rule.generate(context);
@@ -341,11 +251,7 @@ function evaluateSpecificRule(ruleId, context) {
         actions: generated.actions || [],
       };
     }
-  } catch (err) {
-    console.error(`Rule "${ruleId}" evaluation error:`, err.message);
-  }
-
+  } catch (err)
   return null;
 }
-
 module.exports = { evaluateRules, evaluateSpecificRule, RULES };

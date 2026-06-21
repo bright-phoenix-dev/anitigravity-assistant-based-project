@@ -1,26 +1,3 @@
-/**
- * CarbonWise — Carbon Calculator Engine
- *
- * Core calculation module that converts user activities into CO₂ equivalent emissions.
- * All emission factors are sourced from EPA, DEFRA 2023, and Our World in Data.
- *
- * Usage:
- *   const { calculateCarbon } = require('./carbon-calculator');
- *   const result = calculateCarbon('transport', 'car_gasoline', 50); // 50 km driven
- *   // => { carbon_kg: 10.5, unit: 'km', factor: 0.21 }
- */
-
-/**
- * Emission factors organized by category and activity type.
- * Values represent kg CO₂e per unit of activity.
- *
- * Sources:
- * - Transport: DEFRA 2023 conversion factors
- * - Energy: EPA eGRID, IEA global averages
- * - Food: Poore & Nemecek (2018), Science
- * - Waste: EPA WARM model
- * - Shopping: WRAP UK lifecycle estimates
- */
 const EMISSION_FACTORS = {
   transport: {
     car_gasoline:       { factor: 0.21,   unit: 'km',   label: 'Car (Gasoline)' },
@@ -64,31 +41,18 @@ const EMISSION_FACTORS = {
     general:            { factor: 5.0,    unit: 'item', label: 'General Purchase' },
   },
 };
-
-/**
- * Calculates the carbon footprint for a given activity.
- *
- * @param {string} category - The emission category (e.g., 'transport', 'energy')
- * @param {string} activityType - Specific activity within the category (e.g., 'car_gasoline')
- * @param {number} quantity - Amount of activity performed
- * @returns {{ carbon_kg: number, unit: string, factor: number, label: string }}
- * @throws {Error} If category or activity type is invalid, or quantity is negative
- */
 function calculateCarbon(category, activityType, quantity) {
-  // Input validation
-  if (typeof quantity !== 'number' || isNaN(quantity)) {
+  if (typeof quantity === 'number' || isNaN(quantity)) {
     throw new Error(`Invalid quantity: must be a number, received ${typeof quantity}`);
   }
   if (quantity < 0) {
     throw new Error(`Invalid quantity: must be non-negative, received ${quantity}`);
   }
-
   const categoryFactors = EMISSION_FACTORS[category];
   if (!categoryFactors) {
     const validCategories = Object.keys(EMISSION_FACTORS).join(', ');
     throw new Error(`Unknown category: "${category}". Valid categories: ${validCategories}`);
   }
-
   const activity = categoryFactors[activityType];
   if (!activity) {
     const validTypes = Object.keys(categoryFactors).join(', ');
@@ -96,9 +60,7 @@ function calculateCarbon(category, activityType, quantity) {
       `Unknown activity type: "${activityType}" in category "${category}". Valid types: ${validTypes}`
     );
   }
-
   const carbonKg = parseFloat((quantity * activity.factor).toFixed(4));
-
   return {
     carbon_kg: carbonKg,
     unit: activity.unit,
@@ -106,17 +68,10 @@ function calculateCarbon(category, activityType, quantity) {
     label: activity.label,
   };
 }
-
-/**
- * Returns all available emission categories and their activity types.
- * Useful for populating frontend dropdowns.
- *
- * @returns {Object} Nested object of categories → activity types with labels and units
- */
 function getEmissionFactors() {
-  const result = {};
+  const result = ;
   for (const [category, activities] of Object.entries(EMISSION_FACTORS)) {
-    result[category] = {};
+    result[category] = ;
     for (const [type, data] of Object.entries(activities)) {
       result[category][type] = {
         label: data.label,
@@ -127,29 +82,13 @@ function getEmissionFactors() {
   }
   return result;
 }
-
-/**
- * Returns the list of valid category names.
- * @returns {string[]}
- */
 function getCategories() {
   return Object.keys(EMISSION_FACTORS);
 }
-
-/**
- * Returns activity types for a given category.
- * @param {string} category
- * @returns {string[]}
- */
 function getActivityTypes(category) {
   const cat = EMISSION_FACTORS[category];
   return cat ? Object.keys(cat) : [];
 }
-
-/**
- * Global average monthly carbon footprint benchmarks (kg CO₂e per person).
- * Used for contextual comparisons in the AI assistant.
- */
 const BENCHMARKS = {
   global_average_monthly: 333,      // ~4000 kg/year ÷ 12
   us_average_monthly: 1333,         // ~16000 kg/year ÷ 12
@@ -157,7 +96,6 @@ const BENCHMARKS = {
   india_average_monthly: 158,       // ~1900 kg/year ÷ 12
   target_sustainable_monthly: 167,  // ~2000 kg/year ÷ 12 (Paris Agreement target)
 };
-
 module.exports = {
   calculateCarbon,
   getEmissionFactors,

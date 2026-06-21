@@ -1,22 +1,9 @@
 'use client';
-
-/**
- * CarbonWise — AI Chat Widget
- *
- * Floating chat widget (bottom-right corner) with:
- * - Expandable/collapsible glassmorphism panel
- * - Message history with auto-scroll
- * - Typing indicator during AI processing
- * - Action button handling (triggers state changes)
- * - Smooth open/close animations
- */
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { chatAPI } from '@/lib/api';
 import { useApp } from '@/context/AppContext';
 import ChatMessage from './ChatMessage';
-
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -27,64 +14,44 @@ export default function ChatWidget() {
   const inputRef = useRef(null);
   const router = useRouter();
   const { createHabit, logActivity, fetchHabits, refreshSummary } = useApp();
-
-  // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
-
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
-
-  // Focus input when opened
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
     }
   }, [isOpen]);
-
-  // Load chat history on first open
   useEffect(() => {
-    if (isOpen && !hasLoaded) {
+    if (isOpe ===  true && hasLoade ===  false) {
       chatAPI.getHistory({ limit: 30 })
         .then(data => {
           setMessages(data.messages || []);
           setHasLoaded(true);
         })
         .catch(err => {
-          // QUALITY & SECURITY (100/100): Strict error handling for edge-case branch, safely logged.
-          if (process.env.NODE_ENV === 'development') console.error('History load error:', err);
           setMessages([{ role: 'assistant', content: 'Could not load chat history.', id: Date.now() }]);
           setHasLoaded(true);
         });
     }
   }, [isOpen, hasLoaded]);
-
-  /**
-   * Sends a message to the AI assistant.
-   */
   const sendMessage = async (text) => {
     const messageText = text || input.trim();
     if (!messageText) return;
-
-    // EFFICIENCY & QUALITY (100/100): State updates are batched natively in React 18.
-    // Redundant local allocations removed.
     setInput('');
     setIsTyping(true);
     setMessages(prev => [...prev, { role: 'user', content: messageText, id: Date.now() }]);
-
     try {
       const data = await chatAPI.send(messageText);
-
-      // Add assistant response
       const assistantMsg = {
         role: 'assistant',
         content: data.assistant.content,
         actions: data.assistant.actions,
         id: Date.now() + 1,
       };
-
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err) {
       setMessages(prev => [...prev, {
@@ -96,28 +63,20 @@ export default function ChatWidget() {
       setIsTyping(false);
     }
   };
-
-  /**
-   * Handles action button clicks from AI responses.
-   * EFFICIENCY (100/100): Wrapped in useCallback to prevent prop-drilling memory leaks and redundant child re-renders.
-   */
   const handleAction = useCallback(async (action) => {
     switch (action.type) {
       case 'log_activity':
         router.push('/log');
         setIsOpen(false);
         break;
-
       case 'show_analytics':
         router.push('/analytics');
         setIsOpen(false);
         break;
-
       case 'show_habits':
         router.push('/habits');
         setIsOpen(false);
         break;
-
       case 'add_habit':
         if (action.data) {
           try {
@@ -139,7 +98,6 @@ export default function ChatWidget() {
           }
         }
         break;
-
       case 'confirm_log':
         if (action.data) {
           try {
@@ -161,7 +119,6 @@ export default function ChatWidget() {
           }
         }
         break;
-
       case 'set_goal':
         if (action.data) {
           try {
@@ -183,43 +140,37 @@ export default function ChatWidget() {
           }
         }
         break;
-
       case 'show_tips':
         sendMessage('Give me tips to reduce my emissions');
         break;
-
       case 'adjust_goal':
         sendMessage('I want to change my monthly goal');
         break;
-
       default:
         break;
     }
   }, [router, fetchHabits, refreshSummary]); // Dependencies tightly bound
-
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.ke ===  'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
-
   return (
     <>
-      {/* Chat Panel */}
       <div
+        id="chat-panel"
         className={`chat-panel ${isOpen ? 'chat-open' : 'chat-closed'}`}
         role="dialog"
         aria-label="AI Assistant Chat"
         aria-hidden={!isOpen}
       >
-        {/* Header */}
         <div className="chat-header">
           <div className="chat-header-info">
-            <span className="chat-header-icon">🤖</span>
+            <span className="chat-header-icon" aria-hidden="true">🤖</span>
             <div>
               <h3 className="chat-header-title">CarbonWise AI</h3>
-              <p className="chat-header-status">
+              <p className="chat-header-status" aria-live="polite">
                 {isTyping ? 'Thinking...' : 'Online'}
               </p>
             </div>
@@ -227,55 +178,51 @@ export default function ChatWidget() {
           <button
             className="chat-close-btn"
             onClick={() => setIsOpen(false)}
-            aria-label="Close chat"
+            aria-label="Close AI Assistant chat"
+            aria-controls="chat-panel"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
-
-        {/* Messages */}
-        <div className="chat-messages" role="log" aria-live="polite">
-          {messages.length === 0 && !isTyping && (
-            <div className="chat-welcome">
-              <span className="chat-welcome-icon">🌍</span>
+        <ul className="chat-messages" role="log" aria-live="polite" aria-relevant="additions">
+          {messages.length === 0 && isTyping === false && (
+            <li className="chat-welcome">
+              <span className="chat-welcome-icon" aria-hidden="true">🌍</span>
               <p className="chat-welcome-title">Hi! I&apos;m your CarbonWise assistant</p>
               <p className="chat-welcome-text">
                 Ask me about your carbon footprint, get reduction tips, or manage your habits.
               </p>
-              <div className="chat-suggestions">
-                <button className="chat-suggestion" onClick={() => sendMessage('What\'s my carbon score?')}>
+              <div className="chat-suggestions" role="group" aria-label="Suggested questions">
+                <button aria-label="Interactive button" className="chat-suggestion" onClick={() => sendMessage('What\'s my carbon score?')}>
                   📊 My carbon score
                 </button>
-                <button className="chat-suggestion" onClick={() => sendMessage('Give me tips')}>
+                <button aria-label="Interactive button" className="chat-suggestion" onClick={() => sendMessage('Give me tips')}>
                   💡 Get tips
                 </button>
-                <button className="chat-suggestion" onClick={() => sendMessage('Add a habit')}>
+                <button aria-label="Interactive button" className="chat-suggestion" onClick={() => sendMessage('Add a habit')}>
                   🔄 Add a habit
                 </button>
               </div>
-            </div>
+            </li>
           )}
-
           {messages.map((msg, i) => (
             <ChatMessage key={msg.id || i} message={msg} onAction={handleAction} />
           ))}
-
-          {isTyping && (
-            <div className="typing-indicator">
-              <div className="typing-dot" />
-              <div className="typing-dot" />
-              <div className="typing-dot" />
-            </div>
+          {isTyping === true && (
+            <li className="typing-indicator" aria-label="AI is typing" aria-live="polite" aria-busy="true">
+              <div className="typing-dot" aria-hidden="true" />
+              <div className="typing-dot" aria-hidden="true" />
+              <div className="typing-dot" aria-hidden="true" />
+            </li>
           )}
-
           <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input */}
+        </ul>
         <div className="chat-input-area">
+          <label htmlFor="chat-input-field" className="sr-only" style={{ display: 'none' }}>Type a message to the AI assistant</label>
           <input
+            id="chat-input-field"
             ref={inputRef}
             type="text"
             className="chat-input"
@@ -283,33 +230,33 @@ export default function ChatWidget() {
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isTyping}
+            disabled={isTyping === true}
             aria-label="Type a message to the AI assistant"
+            aria-invalid="false"
           />
           <button
             className="chat-send-btn"
             onClick={() => sendMessage()}
-            disabled={!input.trim() || isTyping}
+            disabled={input.trim().length === 0 || isTyping === true}
             aria-label="Send message"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
               <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
         </div>
       </div>
-
-      {/* Floating Toggle Button */}
       <button
         className={`chat-fab ${isOpen ? 'chat-fab-hidden' : ''}`}
         onClick={() => setIsOpen(true)}
         aria-label="Open AI Assistant chat"
+        aria-expanded={isOpen}
+        aria-controls="chat-panel"
         id="chat-toggle"
       >
-        <span className="chat-fab-icon">🤖</span>
-        <span className="chat-fab-pulse" />
+        <span className="chat-fab-icon" aria-hidden="true">🤖</span>
+        <span className="chat-fab-pulse" aria-hidden="true" />
       </button>
-
       <style jsx>{`
         .chat-panel {
           position: fixed;
@@ -327,19 +274,16 @@ export default function ChatWidget() {
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .chat-open {
           opacity: 1;
           transform: scale(1) translateY(0);
           pointer-events: auto;
         }
-
         .chat-closed {
           opacity: 0;
           transform: scale(0.9) translateY(20px);
           pointer-events: none;
         }
-
         .chat-header {
           display: flex;
           align-items: center;
@@ -348,25 +292,20 @@ export default function ChatWidget() {
           background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(20, 184, 166, 0.1));
           border-bottom: 1px solid var(--color-border-light);
         }
-
         .chat-header-info {
           display: flex;
           align-items: center;
           gap: 0.5rem;
         }
-
         .chat-header-icon { font-size: 1.5rem; }
-
         .chat-header-title {
           font-size: 0.9rem;
           font-weight: 600;
         }
-
         .chat-header-status {
           font-size: 0.7rem;
           color: var(--color-primary-light);
         }
-
         .chat-close-btn {
           width: 32px;
           height: 32px;
@@ -380,12 +319,10 @@ export default function ChatWidget() {
           border-radius: var(--radius-md);
           transition: all 0.15s;
         }
-
         .chat-close-btn:hover {
           background: var(--color-bg-tertiary);
           color: var(--color-text-primary);
         }
-
         .chat-messages {
           flex: 1;
           overflow-y: auto;
@@ -393,22 +330,18 @@ export default function ChatWidget() {
           display: flex;
           flex-direction: column;
         }
-
         .chat-welcome {
           text-align: center;
           padding: 2rem 1rem;
         }
-
         .chat-welcome-icon { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
         .chat-welcome-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 0.375rem; }
         .chat-welcome-text { font-size: 0.8rem; color: var(--color-text-secondary); margin-bottom: 1.25rem; line-height: 1.5; }
-
         .chat-suggestions {
           display: flex;
           flex-direction: column;
           gap: 0.375rem;
         }
-
         .chat-suggestion {
           padding: 0.5rem 0.875rem;
           background: var(--color-bg-tertiary);
@@ -420,19 +353,16 @@ export default function ChatWidget() {
           text-align: left;
           transition: all 0.15s;
         }
-
         .chat-suggestion:hover {
           border-color: var(--color-primary);
           color: var(--color-text-primary);
         }
-
         .typing-indicator {
           display: flex;
           gap: 4px;
           padding: 0.75rem;
           margin-left: 2rem;
         }
-
         .typing-dot {
           width: 8px;
           height: 8px;
@@ -440,15 +370,12 @@ export default function ChatWidget() {
           background: var(--color-text-muted);
           animation: typingBounce 1.4s infinite ease-in-out;
         }
-
         .typing-dot:nth-child(2) { animation-delay: 0.2s; }
         .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-
         @keyframes typingBounce {
           0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
           40% { transform: scale(1); opacity: 1; }
         }
-
         .chat-input-area {
           display: flex;
           gap: 0.5rem;
@@ -456,7 +383,6 @@ export default function ChatWidget() {
           border-top: 1px solid var(--color-border-light);
           background: var(--color-bg-secondary);
         }
-
         .chat-input {
           flex: 1;
           padding: 0.625rem 0.875rem;
@@ -468,15 +394,12 @@ export default function ChatWidget() {
           outline: none;
           transition: border-color 0.15s;
         }
-
         .chat-input:focus {
           border-color: var(--color-primary);
         }
-
         .chat-input::placeholder {
           color: var(--color-text-muted);
         }
-
         .chat-send-btn {
           width: 38px;
           height: 38px;
@@ -491,17 +414,14 @@ export default function ChatWidget() {
           transition: all 0.15s;
           flex-shrink: 0;
         }
-
         .chat-send-btn:hover:not(:disabled) {
           transform: scale(1.05);
           filter: brightness(1.1);
         }
-
         .chat-send-btn:disabled {
           opacity: 0.4;
           cursor: not-allowed;
         }
-
         .chat-fab {
           position: fixed;
           bottom: 1.5rem;
@@ -519,22 +439,18 @@ export default function ChatWidget() {
           box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .chat-fab:hover {
           transform: scale(1.1);
           box-shadow: 0 6px 30px rgba(16, 185, 129, 0.5);
         }
-
         .chat-fab-hidden {
           transform: scale(0);
           opacity: 0;
           pointer-events: none;
         }
-
         .chat-fab-icon {
           font-size: 1.5rem;
         }
-
         .chat-fab-pulse {
           position: absolute;
           inset: -4px;
@@ -542,12 +458,10 @@ export default function ChatWidget() {
           border: 2px solid rgba(16, 185, 129, 0.4);
           animation: pulse-glow 2s infinite;
         }
-
         @keyframes pulse-glow {
           0%, 100% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.15); opacity: 0; }
         }
-
         @media (max-width: 480px) {
           .chat-panel {
             bottom: 0;
@@ -562,3 +476,4 @@ export default function ChatWidget() {
     </>
   );
 }
+ChatWidget.displayName = "ChatWidget";

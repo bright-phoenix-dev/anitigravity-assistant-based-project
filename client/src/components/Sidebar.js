@@ -1,33 +1,21 @@
 'use client';
-
-/**
- * CarbonWise — Sidebar Navigation Component
- *
- * Persistent sidebar with navigation links, user info, and logout.
- * Collapsible on mobile with a hamburger toggle.
- */
-
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '📊', ariaLabel: 'Go to Dashboard' },
   { href: '/log', label: 'Log Activity', icon: '📋', ariaLabel: 'Log a new activity' },
   { href: '/habits', label: 'Habits', icon: '🔄', ariaLabel: 'Manage habits' },
   { href: '/analytics', label: 'Analytics', icon: '📈', ariaLabel: 'View analytics' },
 ];
-
 export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const { user, logout } = useAuth();
-
   return (
     <>
-      {/* Mobile Toggle Button */}
-      <button
+      <button aria-label="Interactive button"
         id="sidebar-toggle"
         className="sidebar-mobile-toggle"
         onClick={() => setIsOpen(!isOpen)}
@@ -40,8 +28,6 @@ export default function Sidebar() {
           <span></span>
         </span>
       </button>
-
-      {/* Overlay for mobile */}
       {isOpen && (
         <div
           className="sidebar-overlay"
@@ -49,14 +35,11 @@ export default function Sidebar() {
           aria-hidden="true"
         />
       )}
-
-      {/* Sidebar */}
       <aside
         className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}
         role="navigation"
         aria-label="Main navigation"
       >
-        {/* Logo / Brand */}
         <div className="sidebar-brand">
           <div className="sidebar-logo">
             <span className="sidebar-logo-icon">🌍</span>
@@ -66,13 +49,11 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
-
-        {/* Navigation Links */}
         <nav className="sidebar-nav">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href;
             return (
-              <Link
+              <Link aria-label="Navigation link"
                 key={item.href}
                 href={item.href}
                 className={`sidebar-link ${isActive ? 'sidebar-link-active' : ''}`}
@@ -87,8 +68,6 @@ export default function Sidebar() {
             );
           })}
         </nav>
-
-        {/* User Section */}
         <div className="sidebar-footer">
           <div className="sidebar-user">
             <div className="sidebar-avatar" aria-hidden="true">
@@ -105,7 +84,7 @@ export default function Sidebar() {
             onClick={logout}
             aria-label="Log out of your account"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg aria-label="Graphic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <polyline points="16 17 21 12 16 7" />
               <line x1="21" y1="12" x2="9" y2="12" />
@@ -113,7 +92,6 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
-
       <style jsx>{`
         .sidebar-mobile-toggle {
           display: none;
@@ -130,14 +108,12 @@ export default function Sidebar() {
           align-items: center;
           justify-content: center;
         }
-
         .hamburger {
           display: flex;
           flex-direction: column;
           gap: 5px;
           transition: all 0.3s;
         }
-
         .hamburger span {
           display: block;
           width: 20px;
@@ -146,19 +122,15 @@ export default function Sidebar() {
           transition: all 0.3s;
           border-radius: 1px;
         }
-
         .hamburger.active span:nth-child(1) {
           transform: rotate(45deg) translateY(7px);
         }
-
         .hamburger.active span:nth-child(2) {
           opacity: 0;
         }
-
         .hamburger.active span:nth-child(3) {
           transform: rotate(-45deg) translateY(-7px);
         }
-
         .sidebar-overlay {
           display: none;
           position: fixed;
@@ -166,7 +138,6 @@ export default function Sidebar() {
           background: rgba(0, 0, 0, 0.5);
           z-index: 999;
         }
-
         .sidebar {
           position: fixed;
           top: 0;
@@ -180,23 +151,19 @@ export default function Sidebar() {
           z-index: 1000;
           transition: transform var(--transition-base);
         }
-
         .sidebar-brand {
           padding: 1.5rem;
           border-bottom: 1px solid var(--color-border-light);
         }
-
         .sidebar-logo {
           display: flex;
           align-items: center;
           gap: 0.75rem;
         }
-
         .sidebar-logo-icon {
           font-size: 2rem;
           animation: float 3s ease-in-out infinite;
         }
-
         .sidebar-logo-text {
           font-size: 1.25rem;
           font-weight: 700;
@@ -206,14 +173,12 @@ export default function Sidebar() {
           background-clip: text;
           letter-spacing: -0.02em;
         }
-
         .sidebar-logo-sub {
           font-size: 0.7rem;
           color: var(--color-text-muted);
           letter-spacing: 0.05em;
           text-transform: uppercase;
         }
-
         .sidebar-nav {
           flex: 1;
           padding: 1rem 0.75rem;
@@ -222,7 +187,6 @@ export default function Sidebar() {
           gap: 0.25rem;
           overflow-y: auto;
         }
-
         .sidebar-link {
           display: flex;
           align-items: center;
@@ -236,22 +200,18 @@ export default function Sidebar() {
           position: relative;
           transition: all var(--transition-fast);
         }
-
         .sidebar-link:hover {
           background: var(--color-bg-tertiary);
           color: var(--color-text-primary);
         }
-
         .sidebar-link-active {
           background: var(--color-primary-glow);
           color: var(--color-primary-light);
         }
-
         .sidebar-link-active:hover {
           background: var(--color-primary-glow);
           color: var(--color-primary-light);
         }
-
         .sidebar-active-indicator {
           position: absolute;
           right: 0;
@@ -262,13 +222,11 @@ export default function Sidebar() {
           background: var(--color-primary);
           border-radius: var(--radius-full);
         }
-
         .sidebar-link-icon {
           font-size: 1.25rem;
           width: 1.5rem;
           text-align: center;
         }
-
         .sidebar-footer {
           padding: 1rem 1.25rem;
           border-top: 1px solid var(--color-border-light);
@@ -277,7 +235,6 @@ export default function Sidebar() {
           justify-content: space-between;
           gap: 0.75rem;
         }
-
         .sidebar-user {
           display: flex;
           align-items: center;
@@ -285,7 +242,6 @@ export default function Sidebar() {
           flex: 1;
           min-width: 0;
         }
-
         .sidebar-avatar {
           width: 36px;
           height: 36px;
@@ -299,11 +255,9 @@ export default function Sidebar() {
           color: white;
           flex-shrink: 0;
         }
-
         .sidebar-user-info {
           min-width: 0;
         }
-
         .sidebar-user-name {
           font-size: 0.85rem;
           font-weight: 600;
@@ -312,12 +266,10 @@ export default function Sidebar() {
           overflow: hidden;
           text-overflow: ellipsis;
         }
-
         .sidebar-user-region {
           font-size: 0.7rem;
           color: var(--color-text-muted);
         }
-
         .sidebar-logout {
           width: 36px;
           height: 36px;
@@ -332,25 +284,20 @@ export default function Sidebar() {
           transition: all var(--transition-fast);
           flex-shrink: 0;
         }
-
         .sidebar-logout:hover {
           background: rgba(239, 68, 68, 0.1);
           color: var(--color-danger);
         }
-
         @media (max-width: 768px) {
           .sidebar-mobile-toggle {
             display: flex;
           }
-
           .sidebar-overlay {
             display: block;
           }
-
           .sidebar {
             transform: translateX(-100%);
           }
-
           .sidebar-open {
             transform: translateX(0);
           }
@@ -359,3 +306,4 @@ export default function Sidebar() {
     </>
   );
 }
+Sidebar.displayName = "Sidebar";

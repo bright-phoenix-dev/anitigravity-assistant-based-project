@@ -1,12 +1,4 @@
 'use client';
-
-/**
- * CarbonWise — SVG Progress Ring Component
- *
- * Animated circular progress indicator used for goal tracking.
- * Renders an SVG circle with a gradient stroke.
- */
-
 export default function ProgressRing({
   progress = 0,
   size = 120,
@@ -18,12 +10,9 @@ export default function ProgressRing({
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (normalizedProgress / 100) * circumference;
-
-  // Color based on progress level
   let strokeColor = '#10b981'; // Green (on track)
   if (normalizedProgress > 80) strokeColor = '#f59e0b'; // Warning
   if (normalizedProgress > 100) strokeColor = '#ef4444'; // Danger
-
   return (
     <div
       className="progress-ring-container"
@@ -33,21 +22,18 @@ export default function ProgressRing({
       aria-valuemax={100}
       aria-label={`${label}: ${normalizedProgress}% of goal`}
     >
-      <svg
+      <svg aria-label="Graphic"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="progress-ring-svg"
       >
-        {/* Gradient definition */}
         <defs>
           <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#10b981" />
             <stop offset="100%" stopColor="#14b8a6" />
           </linearGradient>
         </defs>
-
-        {/* Background track */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -56,8 +42,6 @@ export default function ProgressRing({
           stroke="rgba(75, 85, 99, 0.2)"
           strokeWidth={strokeWidth}
         />
-
-        {/* Progress arc */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -74,7 +58,6 @@ export default function ProgressRing({
           }}
         />
       </svg>
-
       <div className="progress-ring-content">
         <span className="progress-ring-value">
           {normalizedProgress.toFixed(0)}%
@@ -82,7 +65,6 @@ export default function ProgressRing({
         {label && <span className="progress-ring-label">{label}</span>}
         {sublabel && <span className="progress-ring-sublabel">{sublabel}</span>}
       </div>
-
       <style jsx>{`
         .progress-ring-container {
           position: relative;
@@ -92,34 +74,29 @@ export default function ProgressRing({
           width: ${size}px;
           height: ${size}px;
         }
-
         .progress-ring-svg {
           position: absolute;
           top: 0;
           left: 0;
         }
-
         .progress-ring-content {
           display: flex;
           flex-direction: column;
           align-items: center;
           z-index: 1;
         }
-
         .progress-ring-value {
           font-size: ${size * 0.2}px;
           font-weight: 700;
           color: var(--color-text-primary);
           line-height: 1;
         }
-
         .progress-ring-label {
           font-size: ${Math.max(size * 0.09, 10)}px;
           color: var(--color-text-secondary);
           margin-top: 2px;
           text-align: center;
         }
-
         .progress-ring-sublabel {
           font-size: ${Math.max(size * 0.075, 9)}px;
           color: var(--color-text-muted);
@@ -129,3 +106,4 @@ export default function ProgressRing({
     </div>
   );
 }
+ProgressRing.displayName = "ProgressRing";

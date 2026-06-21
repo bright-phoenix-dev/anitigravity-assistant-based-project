@@ -1,23 +1,8 @@
-/**
- * CarbonWise — Database Schema Initialization
- *
- * Defines and creates all database tables, indexes, and constraints.
- * This module is idempotent — safe to call on every application startup.
- */
-
 const { getDatabase, initDatabase } = require('./connection');
-
-/**
- * Initializes all database tables.
- * Uses "CREATE TABLE IF NOT EXISTS" for idempotent operation.
- */
 async function initializeSchema() {
   await initDatabase();
   const db = getDatabase();
-
-  // Run all schema creation inside a transaction for atomicity
   const migrate = db.transaction(() => {
-    // ─── Users Table ──────────────────────────────────────────────
     db.exec(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,8 +15,6 @@ async function initializeSchema() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-
-    // ─── Activity Logs Table ──────────────────────────────────────
     db.exec(`
       CREATE TABLE IF NOT EXISTS activity_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,8 +30,6 @@ async function initializeSchema() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-
-    // ─── Habits Table ─────────────────────────────────────────────
     db.exec(`
       CREATE TABLE IF NOT EXISTS habits (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,8 +45,6 @@ async function initializeSchema() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-
-    // ─── Chat History Table ───────────────────────────────────────
     db.exec(`
       CREATE TABLE IF NOT EXISTS chat_history (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,25 +56,17 @@ async function initializeSchema() {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
-
-    // ─── Indexes ──────────────────────────────────────────────────
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_activity_user_date
         ON activity_logs(user_id, log_date);
-
       CREATE INDEX IF NOT EXISTS idx_activity_category
         ON activity_logs(user_id, category);
-
       CREATE INDEX IF NOT EXISTS idx_habits_user
         ON habits(user_id, is_active);
-
       CREATE INDEX IF NOT EXISTS idx_chat_user_created
         ON chat_history(user_id, created_at);
     `);
   });
-
   migrate();
-  console.log('✅ Database schema initialized successfully');
 }
-
 module.exports = { initializeSchema };

@@ -1,18 +1,8 @@
 'use client';
-
-/**
- * CarbonWise — Log Activity Page
- *
- * Form to log carbon-emitting activities with auto CO₂ calculation.
- * Dynamically loads emission factors from the backend.
- */
-
 import { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-
 export default function LogActivityPage() {
   const { logActivity, fetchFactors, factors } = useApp();
-
   const [form, setForm] = useState({
     category: '',
     activity_type: '',
@@ -24,17 +14,12 @@ export default function LogActivityPage() {
   const [success, setSuccess] = useState(null);
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(null);
-
   useEffect(() => {
     fetchFactors();
   }, [fetchFactors]);
-
-  // Get activity types for selected category
   const activityTypes = form.category && factors?.[form.category]
     ? Object.entries(factors[form.category])
     : [];
-
-  // Calculate preview when quantity changes
   useEffect(() => {
     if (form.category && form.activity_type && form.quantity && factors) {
       const factor = factors[form.category]?.[form.activity_type];
@@ -51,7 +36,6 @@ export default function LogActivityPage() {
       setPreview(null);
     }
   }, [form.category, form.activity_type, form.quantity, factors]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => {
@@ -64,13 +48,11 @@ export default function LogActivityPage() {
     setSuccess(null);
     setError('');
   };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess(null);
     setLoading(true);
-
     try {
       const data = await logActivity({
         category: form.category,
@@ -79,13 +61,10 @@ export default function LogActivityPage() {
         log_date: form.log_date,
         notes: form.notes,
       });
-
       setSuccess({
         carbon_kg: data.activity.carbon_kg,
         label: data.calculation.label,
       });
-
-      // Reset form (keep date)
       setForm(prev => ({
         category: '',
         activity_type: '',
@@ -100,14 +79,12 @@ export default function LogActivityPage() {
       setLoading(false);
     }
   };
-
   return (
     <div className="page-container">
       <div className="page-header">
         <h1 className="page-title">📋 Log Activity</h1>
         <p className="page-subtitle">Record a carbon-emitting activity. We&apos;ll calculate the CO₂ automatically.</p>
       </div>
-
       <div className="log-layout">
         <div className="glass-card log-form-card">
           {success && (
@@ -121,11 +98,9 @@ export default function LogActivityPage() {
               </div>
             </div>
           )}
-
           {error && (
             <div className="log-error" role="alert">⚠️ {error}</div>
           )}
-
           <form onSubmit={handleSubmit} className="log-form" id="log-activity-form">
             <div className="form-row">
               <div className="form-group">
@@ -147,7 +122,6 @@ export default function LogActivityPage() {
                   ))}
                 </select>
               </div>
-
               <div className="form-group">
                 <label htmlFor="log-activity-type" className="form-label">Activity Type</label>
                 <select
@@ -167,7 +141,6 @@ export default function LogActivityPage() {
                 </select>
               </div>
             </div>
-
             <div className="form-row">
               <div className="form-group">
                 <label htmlFor="log-quantity" className="form-label">
@@ -187,7 +160,6 @@ export default function LogActivityPage() {
                   aria-required="true"
                 />
               </div>
-
               <div className="form-group">
                 <label htmlFor="log-date" className="form-label">Date</label>
                 <input
@@ -200,7 +172,6 @@ export default function LogActivityPage() {
                 />
               </div>
             </div>
-
             <div className="form-group">
               <label htmlFor="log-notes" className="form-label">Notes (optional)</label>
               <input
@@ -214,8 +185,7 @@ export default function LogActivityPage() {
                 maxLength={500}
               />
             </div>
-
-            <button
+            <button aria-label="Interactive button"
               id="log-submit"
               type="submit"
               className="btn-primary log-submit"
@@ -225,8 +195,6 @@ export default function LogActivityPage() {
             </button>
           </form>
         </div>
-
-        {/* ─── Live Preview ────────────────────────────────────── */}
         <div className="glass-card preview-card">
           <h3 className="card-title">Live Preview</h3>
           {preview ? (
@@ -257,7 +225,6 @@ export default function LogActivityPage() {
           )}
         </div>
       </div>
-
       <style jsx>{`
         .log-layout {
           display: grid;
@@ -265,31 +232,26 @@ export default function LogActivityPage() {
           gap: 1.5rem;
           align-items: start;
         }
-
         .log-form {
           display: flex;
           flex-direction: column;
           gap: 1.25rem;
         }
-
         .form-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
-
         .form-group {
           display: flex;
           flex-direction: column;
         }
-
         .log-submit {
           width: 100%;
           padding: 0.875rem;
           font-size: 1rem;
           margin-top: 0.5rem;
         }
-
         .log-success {
           display: flex;
           align-items: center;
@@ -300,11 +262,9 @@ export default function LogActivityPage() {
           border-radius: var(--radius-md);
           margin-bottom: 1rem;
         }
-
         .log-success-icon { font-size: 1.5rem; }
         .log-success-title { font-weight: 600; font-size: 0.9rem; color: var(--color-success); }
         .log-success-detail { font-size: 0.8rem; color: var(--color-text-secondary); }
-
         .log-error {
           padding: 0.75rem 1rem;
           background: rgba(239, 68, 68, 0.1);
@@ -314,15 +274,12 @@ export default function LogActivityPage() {
           font-size: 0.85rem;
           margin-bottom: 1rem;
         }
-
         .preview-content {
           text-align: center;
         }
-
         .preview-carbon {
           margin-bottom: 1.5rem;
         }
-
         .preview-carbon-value {
           font-size: 3rem;
           font-weight: 800;
@@ -331,47 +288,38 @@ export default function LogActivityPage() {
           -webkit-text-fill-color: transparent;
           background-clip: text;
         }
-
         .preview-carbon-unit {
           display: block;
           font-size: 0.9rem;
           color: var(--color-text-secondary);
           font-weight: 500;
         }
-
         .preview-details {
           background: var(--color-bg-tertiary);
           border-radius: var(--radius-md);
           padding: 1rem;
           margin-bottom: 1rem;
         }
-
         .preview-label { font-weight: 600; margin-bottom: 0.375rem; font-size: 0.9rem; }
         .preview-factor { color: var(--color-text-muted); font-size: 0.8rem; margin-bottom: 0.25rem; }
         .preview-calc { color: var(--color-text-secondary); font-size: 0.8rem; font-family: monospace; }
-
         .preview-context { margin-top: 0.5rem; }
         .preview-equiv { font-size: 0.9rem; }
-
         .preview-empty {
           text-align: center;
           padding: 2rem 1rem;
           color: var(--color-text-muted);
         }
-
         .preview-empty-icon { font-size: 2.5rem; display: block; margin-bottom: 0.75rem; }
-
         .card-title {
           font-size: 1rem;
           font-weight: 600;
           margin-bottom: 1.5rem;
         }
-
         @media (max-width: 768px) {
           .log-layout {
             grid-template-columns: 1fr;
           }
-
           .form-row {
             grid-template-columns: 1fr;
           }
@@ -380,3 +328,4 @@ export default function LogActivityPage() {
     </div>
   );
 }
+LogActivityPage.displayName = "LogActivityPage";

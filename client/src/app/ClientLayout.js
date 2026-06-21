@@ -1,28 +1,13 @@
 'use client';
-
-/**
- * CarbonWise — Client Layout
- *
- * Wraps the app with Context providers.
- * Shows Sidebar + Chat widget only for authenticated routes.
- */
-
 import { usePathname } from 'next/navigation';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { AppProvider } from '@/context/AppContext';
 import Sidebar from '@/components/Sidebar';
 import ChatWidget from '@/components/ChatWidget';
-
-/**
- * Inner layout that reads auth state to conditionally render the sidebar.
- */
 function LayoutInner({ children }) {
   const { isAuthenticated, loading } = useAuth();
   const pathname = usePathname();
-
-  // Public routes (no sidebar)
   const isPublicRoute = ['/', '/login', '/register'].includes(pathname);
-
   if (loading) {
     return (
       <div style={{
@@ -47,11 +32,9 @@ function LayoutInner({ children }) {
       </div>
     );
   }
-
   if (!isAuthenticated || isPublicRoute) {
     return <>{children}</>;
   }
-
   return (
     <AppProvider>
       <div style={{ display: 'flex', minHeight: '100vh' }}>
@@ -77,7 +60,6 @@ function LayoutInner({ children }) {
     </AppProvider>
   );
 }
-
 export default function ClientLayout({ children }) {
   return (
     <AuthProvider>
@@ -85,3 +67,4 @@ export default function ClientLayout({ children }) {
     </AuthProvider>
   );
 }
+ClientLayout.displayName = "ClientLayout";

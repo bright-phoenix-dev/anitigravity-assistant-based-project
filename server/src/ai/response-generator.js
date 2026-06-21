@@ -1,79 +1,41 @@
-/**
- * CarbonWise — AI Response Generator
- *
- * Orchestrates the AI assistant's response pipeline:
- *   1. Classify user intent
- *   2. Build user context
- *   3. Route to intent-specific handler
- *   4. Enrich with rule-based insights
- *   5. Return personalized response with optional actions
- *
- * This is the main entry point for the AI chat system.
- */
-
 const { classifyIntent } = require('./intent-classifier');
 const { buildUserContext } = require('./context-builder');
 const { evaluateRules } = require('./rules-engine');
 const { calculateCarbon, getEmissionFactors, BENCHMARKS } = require('../utils/carbon-calculator');
-
-/**
- * Generates a complete AI assistant response for a user message.
- *
- * @param {number} userId  - The authenticated user's ID
- * @param {string} message - The user's chat message
- * @returns {{ response: string, actions: Array, intent: string, insights: Array }}
- */
 function generateResponse(userId, message) {
-  // Step 1: Classify intent
   const { intent, confidence, extractedData } = classifyIntent(message);
-
-  // Step 2: Build full user context
   const context = buildUserContext(userId);
-
-  // Step 3: Route to intent handler
   let response;
   let actions = [];
-
   switch (intent) {
     case 'greeting':
       ({ response, actions } = handleGreeting(context));
       break;
-
     case 'check_score':
       ({ response, actions } = handleCheckScore(context));
       break;
-
     case 'get_tips':
       ({ response, actions } = handleGetTips(context));
       break;
-
     case 'log_activity':
       ({ response, actions } = handleLogActivity(context, extractedData));
       break;
-
     case 'add_habit':
       ({ response, actions } = handleAddHabit(context, extractedData));
       break;
-
     case 'compare':
       ({ response, actions } = handleCompare(context));
       break;
-
     case 'set_goal':
       ({ response, actions } = handleSetGoal(context, extractedData));
       break;
-
     case 'help':
       ({ response, actions } = handleHelp(context));
       break;
-
     default:
       ({ response, actions } = handleGeneral(context));
   }
-
-  // Step 4: Evaluate rules for additional insights
   const insights = evaluateRules(context, 2);
-
   return {
     response,
     actions,
@@ -85,11 +47,6 @@ function generateResponse(userId, message) {
     })),
   };
 }
-
-// ═══════════════════════════════════════════════════════════════════
-// Intent Handlers
-// ═══════════════════════════════════════════════════════════════════
-
 function handleGreeting(ctx) {
   const timeGreeting = {
     morning: 'Good morning',
@@ -97,9 +54,7 @@ function handleGreeting(ctx) {
     evening: 'Good evening',
     night: 'Hey there',
   }[ctx.temporal.time_of_day] || 'Hello';
-
   let response = `${timeGreeting}, ${ctx.user.name}! 🌍 `;
-
   if (!ctx.activities.has_ever_logged) {
     response += `Welcome to CarbonWise! Ready to start tracking your carbon footprint? I can help you log activities, build eco-friendly habits, and track your progress over time.`;
   } else {
@@ -112,14 +67,11 @@ function handleGreeting(ctx) {
       response += `How can I help you today?`;
     }
   }
-
   const actions = !ctx.activities.has_ever_logged
     ? [{ type: 'log_activity', label: '📋 Log my first activity' }]
     : [{ type: 'show_analytics', label: '📈 View dashboard' }];
-
   return { response, actions };
 }
-
 function handleCheckScore(ctx) {
   if (!ctx.activities.has_ever_logged) {
     return {
@@ -127,12 +79,10 @@ function handleCheckScore(ctx) {
       actions: [{ type: 'log_activity', label: '📋 Log an activity' }],
     };
   }
-
   let response = `📊 **Your Carbon Score — This Month:**\n\n`;
   response += `• **Total Emissions:** ${ctx.emissions.monthly_total_kg.toFixed(1)} kg CO₂\n`;
   response += `• **Monthly Goal:** ${ctx.emissions.monthly_goal_kg} kg CO₂\n`;
   response += `• **Progress:** ${ctx.emissions.goal_progress_percent.toFixed(0)}% of goal\n`;
-
   if (ctx.emissions.by_category.length > 0) {
     response += `\n**By Category:**\n`;
     for (const cat of ctx.emissions.by_category) {
@@ -140,24 +90,18 @@ function handleCheckScore(ctx) {
       response += `• ${emoji} ${cat.category}: ${cat.total_kg.toFixed(1)} kg (${cat.percent}%)\n`;
     }
   }
-
   if (ctx.benchmark.is_below_benchmark) {
     response += `\n🌟 You're below the ${ctx.user.region || 'global'} average of ${ctx.benchmark.regional_monthly_kg} kg/month!`;
   } else {
     response += `\nYour regional benchmark is ${ctx.benchmark.regional_monthly_kg} kg/month.`;
   }
-
   const actions = [{ type: 'show_analytics', label: '📈 View detailed analytics' }];
-
   return { response, actions };
 }
-
 function handleGetTips(ctx) {
   let response = `💡 **Personalized Tips for You, ${ctx.user.name}:**\n\n`;
   const actions = [];
   const tips = [];
-
-  // Generate tips based on actual user data
   if (ctx.emissions.top_category === 'transport') {
     tips.push(`🚗 **Transport** is your biggest category (${ctx.emissions.top_category_percent}%). Try carpooling, public transit, or biking for shorter trips.`);
     if (!ctx.habits.has_transport_habit) {
@@ -174,34 +118,23 @@ function handleGetTips(ctx) {
       actions.push({ type: 'add_habit', label: '💡 Add LED lighting habit', data: { name: 'LED lighting', category: 'energy' } });
     }
   }
-
-  // General high-impact tips
   tips.push(`🌱 **Quick wins:** Shorter showers (save ~12 kg/month), air-drying clothes (save ~6 kg/month), and buying local produce (save ~8 kg/month).`);
   tips.push(`♻️ **Recycling** vs landfill reduces waste emissions by **95%** — make sure to sort your waste.`);
-
   if (ctx.habits.active_count === 0) {
     tips.push(`💪 **Start a habit!** Consistent small actions have bigger impact than occasional big gestures.`);
   }
-
   response += tips.join('\n\n');
-
   if (actions.length === 0) {
     actions.push({ type: 'show_analytics', label: '📈 See my breakdown' });
   }
-
   return { response, actions };
 }
-
 function handleLogActivity(ctx, extractedData) {
   let response;
   const actions = [];
-
   if (extractedData.quantity && extractedData.activity_hint) {
-    // User provided enough info to suggest a log
     const hint = extractedData.activity_hint;
     const quantity = extractedData.quantity;
-
-    // Try to map hint to actual category/type
     const factorMap = {
       car: { category: 'transport', type: 'car_gasoline' },
       bus: { category: 'transport', type: 'bus' },
@@ -216,7 +149,6 @@ function handleLogActivity(ctx, extractedData) {
       vegan: { category: 'food', type: 'vegan' },
       vegetarian: { category: 'food', type: 'vegetarian' },
     };
-
     const mapping = factorMap[hint];
     if (mapping) {
       try {
@@ -246,21 +178,16 @@ function handleLogActivity(ctx, extractedData) {
     response = `I'll help you log an activity! Open the tracker to select the category (transport, energy, food, waste, or shopping), choose the specific type, and enter the quantity. I'll calculate the CO₂ automatically.`;
     actions.push({ type: 'log_activity', label: '📋 Open activity logger' });
   }
-
   return { response, actions };
 }
-
 function handleAddHabit(ctx, extractedData) {
   let response;
   const actions = [];
-
   if (extractedData.habit_hint) {
     const habitName = extractedData.habit_hint;
-    // Check if user already has this habit
     const existing = ctx.habits.active.find(
-      h => h.name.toLowerCase() === habitName.toLowerCase()
+      h => h.name.toLowerCase( ===  habitName.toLowerCase()
     );
-
     if (existing) {
       response = `You already have a **"${habitName}"** habit with a ${existing.streak_days}-day streak! ${
         existing.streak_days > 0
@@ -279,7 +206,6 @@ function handleAddHabit(ctx, extractedData) {
         'Plant-based meals': 'food',
         'Buy local produce': 'food',
       };
-
       response = `Great choice! I'll add **"${habitName}"** to your habits tracker. This can save an estimated amount of CO₂ each month. Shall I add it?`;
       actions.push({
         type: 'add_habit',
@@ -297,25 +223,19 @@ function handleAddHabit(ctx, extractedData) {
     response += `Which one interests you?`;
     actions.push({ type: 'show_habits', label: '🔄 Browse all habits' });
   }
-
   return { response, actions };
 }
-
 function handleCompare(ctx) {
   let response = `📊 **Your Emissions Comparison:**\n\n`;
-
   if (!ctx.activities.has_ever_logged) {
     return {
       response: `You need to log some activities first before I can show comparisons. Start tracking today!`,
       actions: [{ type: 'log_activity', label: '📋 Log an activity' }],
     };
   }
-
-  // Week over week
   response += `**This Week vs Last Week:**\n`;
   response += `• This week: ${ctx.emissions.this_week_kg.toFixed(1)} kg CO₂\n`;
   response += `• Last week: ${ctx.emissions.last_week_kg.toFixed(1)} kg CO₂\n`;
-
   if (ctx.emissions.last_week_kg > 0) {
     const change = ctx.emissions.week_change_percent;
     if (change < 0) {
@@ -326,24 +246,18 @@ function handleCompare(ctx) {
       response += `• Change: ➡️ **No change** — Steady pace.\n`;
     }
   }
-
-  // Monthly progress
   response += `\n**Monthly Progress:**\n`;
   response += `• Current: ${ctx.emissions.monthly_total_kg.toFixed(1)} / ${ctx.emissions.monthly_goal_kg} kg goal\n`;
   response += `• Progress: ${ctx.emissions.goal_progress_percent.toFixed(0)}%\n`;
-
-  // vs Benchmark
   response += `\n**vs ${ctx.user.region || 'Global'} Average:**\n`;
   response += `• You: ${ctx.emissions.monthly_total_kg.toFixed(1)} kg/month\n`;
   response += `• Average: ${ctx.benchmark.regional_monthly_kg} kg/month\n`;
   response += `• You're at ${ctx.benchmark.vs_benchmark_percent}% of the average ${ctx.benchmark.is_below_benchmark ? '✅' : ''}`;
-
   return {
     response,
     actions: [{ type: 'show_analytics', label: '📈 View full analytics' }],
   };
 }
-
 function handleSetGoal(ctx, extractedData) {
   if (extractedData.goal_value) {
     const newGoal = extractedData.goal_value;
@@ -353,7 +267,6 @@ function handleSetGoal(ctx, extractedData) {
         actions: [],
       };
     }
-
     return {
       response: `I'll update your monthly goal from ${ctx.user.monthly_goal_kg} kg to **${newGoal} kg CO₂**. The sustainable target recommended by climate scientists is about ${BENCHMARKS.target_sustainable_monthly} kg/month. Would you like to confirm this change?`,
       actions: [
@@ -361,7 +274,6 @@ function handleSetGoal(ctx, extractedData) {
       ],
     };
   }
-
   return {
     response: `Your current monthly goal is **${ctx.user.monthly_goal_kg} kg CO₂**. The sustainable target is about ${BENCHMARKS.target_sustainable_monthly} kg/month (~2,000 kg/year). What would you like to set your new goal to? (e.g., "set goal to 150 kg")`,
     actions: [
@@ -369,7 +281,6 @@ function handleSetGoal(ctx, extractedData) {
     ],
   };
 }
-
 function handleHelp(ctx) {
   let response = `🤖 **I'm your CarbonWise assistant!** Here's what I can help with:\n\n`;
   response += `📋 **Log Activities** — Tell me what you did (e.g., "I drove 30 km today")\n`;
@@ -379,7 +290,6 @@ function handleHelp(ctx) {
   response += `📈 **Compare** — See how you're doing vs. last week or the average\n`;
   response += `🎯 **Set Goals** — Change your monthly carbon target\n\n`;
   response += `Just type naturally — I'll understand what you need! You can also use the navigation sidebar to access specific features directly.`;
-
   return {
     response,
     actions: [
@@ -388,17 +298,13 @@ function handleHelp(ctx) {
     ],
   };
 }
-
 function handleGeneral(ctx) {
-  // For unrecognized intents, provide contextual response based on user state
   if (!ctx.activities.has_ever_logged) {
     return {
       response: `I'm here to help you track your carbon footprint! 🌍 To get started, try logging your first activity — like your commute, a meal, or energy usage. You can also say things like "give me tips" or "add a habit."`,
       actions: [{ type: 'log_activity', label: '📋 Log my first activity' }],
     };
   }
-
-  // Generate a relevant contextual response
   const insights = evaluateRules(ctx, 1);
   if (insights.length > 0) {
     return {
@@ -406,7 +312,6 @@ function handleGeneral(ctx) {
       actions: insights[0].actions || [],
     };
   }
-
   return {
     response: `I'm your CarbonWise assistant! I can help you log activities, check your score, get reduction tips, manage habits, or compare your progress. What would you like to do?`,
     actions: [
@@ -415,5 +320,4 @@ function handleGeneral(ctx) {
     ],
   };
 }
-
 module.exports = { generateResponse };
